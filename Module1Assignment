@@ -1,0 +1,94 @@
+# --- Drink and Order classes ---
+
+VALID_BASES = ['Water', 'Sprite', 'Coke', 'Dr. Pepper', 'Pepsi', 'Leaf wine']
+VALID_FLAVORS = ['lemon', 'cherry', 'strawberry', 'mint', 'blueberry', 'Vanilla']
+
+
+class Drink:
+    def __init__(self, base):
+        if base not in VALID_BASES:
+            raise ValueError(f"Invalid base: {base}")
+        self.__base = base
+        self.__flavors = []
+
+    def get_base(self):
+        return self.__base
+
+    def get_flavors(self):
+        return list(self.__flavors)
+
+    def get_num_flavors(self):
+        return len(self.__flavors)
+
+    def set_flavors(self, flavors):
+        unique_flavors = []
+        for flavor in flavors:
+            if flavor in VALID_FLAVORS and flavor not in unique_flavors:
+                unique_flavors.append(flavor)
+        self.__flavors = unique_flavors
+
+    def add_flavor(self, flavor):
+        if flavor not in VALID_FLAVORS:
+            raise ValueError(f"Invalid flavor: {flavor}")
+        if flavor not in self.__flavors:
+            self.__flavors.append(flavor)
+
+
+class Order:
+    def __init__(self):
+        self.__items = []
+
+    def add_item(self, drink):
+        if isinstance(drink, Drink):
+            self.__items.append(drink)
+        else:
+            raise TypeError("Only Drink objects can be added to the order.")
+
+    def remove_item(self, index):
+        if 0 <= index < len(self.__items):
+            del self.__items[index]
+        else:
+            raise IndexError("Invalid index.")
+
+    def get_items(self):
+        return list(self.__items)
+
+    def get_num_items(self):
+        return len(self.__items)
+
+    def get_total(self):
+        total = 0.0
+        for drink in self.__items:
+            total += 2.0 + (0.5 * drink.get_num_flavors())
+        return round(total, 2)
+
+    def get_receipt(self):
+        lines = []
+        for i, drink in enumerate(self.__items, 1):
+            base = drink.get_base()
+            flavors = ", ".join(drink.get_flavors())
+            line = f"{i}. Base: {base}, Flavors: {flavors or 'none'}"
+            lines.append(line)
+        lines.append(f"Total: ${self.get_total():,.2f}")
+        return "\n".join(lines)
+    
+
+# --- Unit tests ---
+import unittest
+
+class TestDrinkAndOrder(unittest.TestCase):
+    def test_valid_drink_creation(self):
+        d = Drink("Sprite")
+        self.assertEqual(d.get_base(), "Sprite")
+        self.assertEqual(d.get_flavors(), [])
+        self.assertEqual(d.get_num_flavors(), 0)
+
+    def test_drink_with_one_flavor(self):
+        d = Drink("Dr. Pepper")
+        d.add_flavor("cherry")
+        self.assertEqual(d.get_base(), "Dr. Pepper")
+        self.assertEqual(d.get_flavors(), ["cherry"])
+        self.assertEqual(d.get_num_flavors(), 1)
+
+if __name__ == '__main__':
+    unittest.main()
