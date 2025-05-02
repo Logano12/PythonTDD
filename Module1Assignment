@@ -21,6 +21,8 @@ class Size(Enum):
         }
         return prices[size]
 
+# bases
+
 class Base(Enum):
     WATER = "Water"
     SPRITE = "Sprite"
@@ -29,6 +31,8 @@ class Base(Enum):
     PEPSI = "Pepsi"
     LEAF_WINE = "Leaf wine"
     
+
+#flavors 
 
 class Flavor(Enum):
     LEMON = "lemon"
@@ -39,7 +43,7 @@ class Flavor(Enum):
     LIME = "lime"
 
 
-
+# drink class asking for base size and flavors
 
 class Drink:
     def __init__(self, base, size):
@@ -98,7 +102,7 @@ class Drink:
         return f"{self.__size.value} {self.__base.value} with {flavors}"
     
     
-
+order class to add drinks 
 
 class Order:
     def __init__(self):
@@ -173,6 +177,7 @@ if __name__ == '__main__':
 
 
 # improved unit test 
+# testing drink and order a drink with one flavor the order total and the receipt structure
 
 import unittest
 from Module2Assignment import Drink, Order
