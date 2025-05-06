@@ -4,7 +4,7 @@ from enum import Enum
 
 
 # sizes 
-
+# Module 2 
 class Size(Enum):
     SMALL = 'Small'
     MEDIUM = 'Medium'
@@ -176,8 +176,8 @@ if __name__ == '__main__':
     
 
 
-# improved unit test 
-# testing drink and order a drink with one flavor the order total and the receipt structure
+# unit test 
+# testing drink and order a drink with one flavor the order total and the receipt structure 
 
 import unittest
 from Module2Assignment import Drink, Order
@@ -195,7 +195,7 @@ class TestDrinkAndOrder(unittest.TestCase):
         self.assertEqual(d.get_base().value, "Dr. Pepper")
         self.assertEqual([f.value for f in d.get_flavors()], ["cherry"])
         self.assertEqual(d.get_num_flavors(), 1)
-
+# Module 2 
     def test_order_total(self):
         order = Order()
         d1 = Drink("Coke", "Small")
