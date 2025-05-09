@@ -3,8 +3,7 @@ from flask import Flask, jsonify, request
 from enum import Enum
 
 
-# sizes 
-# Module 2 
+# Enums for sizes, bases, flavors, toppings, and food items
 class Size(Enum):
     SMALL = 'Small'
     MEDIUM = 'Medium'
@@ -21,8 +20,7 @@ class Size(Enum):
         }
         return prices[size]
 
-# bases
-#Module 1 
+
 class Base(Enum):
     WATER = "Water"
     SPRITE = "Sprite"
@@ -30,9 +28,7 @@ class Base(Enum):
     DR_PEPPER = "Dr. Pepper"
     PEPSI = "Pepsi"
     LEAF_WINE = "Leaf wine"
-    
 
-#flavors 
 
 class Flavor(Enum):
     LEMON = "lemon"
@@ -43,8 +39,29 @@ class Flavor(Enum):
     LIME = "lime"
 
 
-# drink class asking for base size and flavors
+class Topping(Enum):
+    CHERRY = 0.00
+    WHIPPED_CREAM = 0.00
+    CARAMEL_SAUCE = 0.50
+    CHOCOLATE_SAUCE = 0.50
+    NACHO_CHEESE = 0.30
+    CHILI = 0.60
+    BACON_BITS = 0.30
+    KETCHUP = 0.00
+    MUSTARD = 0.00
 
+
+class FoodItem(Enum):
+    HOTDOG = 2.30
+    CORNDOG = 2.00
+    ICE_CREAM = 3.00
+    ONION_RINGS = 1.75
+    FRENCH_FRIES = 1.50
+    TATER_TOTS = 1.70
+    NACHO_CHIPS = 1.90
+
+
+# Drink class
 class Drink:
     def __init__(self, base, size):
         base = base.lower()
@@ -100,22 +117,58 @@ class Drink:
     def __str__(self):
         flavors = ", ".join(f.value for f in self.__flavors) or "none"
         return f"{self.__size.value} {self.__base.value} with {flavors}"
-    
-    
-#order class to add drinks 
 
+
+# Food class
+class Food:
+    def __init__(self, food_type):
+        food_type = food_type.upper().replace(" ", "_")
+        if food_type not in FoodItem.__members__:
+            raise ValueError(f"Invalid food item: {food_type}")
+        self.__type = FoodItem[food_type]
+        self.__toppings = []
+
+    def get_type(self):
+        return self.__type
+
+    def get_price(self):
+        return self.__type.value
+
+    def add_topping(self, topping):
+        topping = topping.upper().replace(" ", "_")
+        if topping not in Topping.__members__:
+            raise ValueError(f"Invalid topping: {topping}")
+        self.__toppings.append(Topping[topping])
+
+    def get_toppings(self):
+        return list(self.__toppings)
+
+    def get_total(self):
+        topping_cost = sum(t.value for t in self.__toppings)
+        return round(self.__type.value + topping_cost, 2)
+
+    @property
+    def cost(self):
+        return self.get_total()
+
+    def __str__(self):
+        toppings = ", ".join(t.name.replace("_", " ").title() for t in self.__toppings) or "none"
+        return f"{self.__type.name.replace('_', ' ').title()} with {toppings}"
+
+
+# Order class
 class Order:
     def __init__(self):
         self.__items = []
 
-    def add_item(self, drink):
-        if isinstance(drink, Drink):
-            self.__items.append(drink)
+    def add_item(self, item):
+        if isinstance(item, (Drink, Food)):
+            self.__items.append(item)
         else:
-            raise TypeError("Only Drink objects allowed.")
+            raise TypeError("Only Drink or Food objects allowed.")
 
     def get_total(self):
-        return round(sum(drink.get_total() for drink in self.__items), 2)
+        return round(sum(item.cost for item in self.__items), 2)
 
     def get_total_with_tax(self):
         subtotal = self.get_total()
@@ -124,35 +177,47 @@ class Order:
         return {"subtotal": subtotal, "tax": tax, "total": total}
 
     def get_receipt(self):
-        drinks_list = []
-        for i, drink in enumerate(self.__items, 1):
-            drinks_list.append({
-                "number": i,
-                "base": drink.get_base().value,
-                "size": drink.get_size().value,
-                "flavors": [f.value for f in drink.get_flavors()],
-                "drink_total": drink.get_total()
-            })
+        items_list = []
+        for i, item in enumerate(self.__items, 1):
+            if isinstance(item, Drink):
+                items_list.append({
+                    "number": i,
+                    "type": "Drink",
+                    "base": item.get_base().value,
+                    "size": item.get_size().value,
+                    "flavors": [f.value for f in item.get_flavors()],
+                    "item_total": item.cost
+                })
+            elif isinstance(item, Food):
+                items_list.append({
+                    "number": i,
+                    "type": "Food",
+                    "food_type": item.get_type().name.replace("_", " ").title(),
+                    "toppings": [t.name.replace("_", " ").title() for t in item.get_toppings()],
+                    "item_total": item.cost
+                })
         totals = self.get_total_with_tax()
         return {
-            "drinks": drinks_list,
+            "items": items_list,
             "subtotal": totals["subtotal"],
             "tax": totals["tax"],
             "total": totals["total"]
         }
-        
-        
-        
-        
+
+
+# Flask setup
 app = Flask(__name__)
 order = Order()
 
 @app.route('/menu', methods=['GET'])
 def menu():
-    bases = [b.value for b in Base]
-    flavors = [f.value for f in Flavor]
-    sizes = [s.value for s in Size]
-    return jsonify({"bases": bases, "flavors": flavors, "sizes": sizes})
+    return jsonify({
+        "bases": [b.value for b in Base],
+        "flavors": [f.value for f in Flavor],
+        "sizes": [s.value for s in Size],
+        "foods": [f.name.replace("_", " ").title() for f in FoodItem],
+        "toppings": [t.name.replace("_", " ").title() for t in Topping]
+    })
 
 @app.route('/drink', methods=['POST'])
 def add_drink():
@@ -166,55 +231,97 @@ def add_drink():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/food', methods=['POST'])
+def add_food():
+    data = request.json
+    try:
+        food = Food(data['type'])
+        for topping in data.get('toppings', []):
+            food.add_topping(topping)
+        order.add_item(food)
+        return jsonify({"message": "Food added successfully."}), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
 @app.route('/order/receipt', methods=['GET'])
 def receipt():
     return jsonify(order.get_receipt())
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
-    
-
-
-# unit test 
-# testing drink and order a drink with one flavor the order total and the receipt structure 
 
 import unittest
-from Module2Assignment import Drink, Order
 
-class TestDrinkAndOrder(unittest.TestCase):
-    def test_valid_drink_creation(self):
-        d = Drink("Sprite", "Medium")
-        self.assertEqual(d.get_base().value, "Sprite")
-        self.assertEqual(d.get_flavors(), [])
-        self.assertEqual(d.get_num_flavors(), 0)
+class TestCinosOrderSystem(unittest.TestCase):
+#module 1 
+    def test_create_drink_basic(self):
+        drink = Drink("Coke", "Small")
+        self.assertEqual(drink.get_base().value, "Coke")
+        self.assertEqual(drink.get_size().value, "Small")
+        self.assertEqual(drink.get_flavors(), [])
+        self.assertEqual(drink.get_total(), 1.50)
+#module 2 
+    def test_add_flavors_to_drink(self):
+        drink = Drink("Sprite", "Medium")
+        drink.add_flavor("cherry")
+        drink.add_flavor("mint")
+        self.assertEqual(drink.get_num_flavors(), 2)
+        self.assertIn("cherry", [f.value for f in drink.get_flavors()])
+        self.assertAlmostEqual(drink.get_total(), 1.75 + (0.15 * 2), places=2)
 
-    def test_drink_with_one_flavor(self):
-        d = Drink("Dr. Pepper", "Large")
-        d.add_flavor("cherry")
-        self.assertEqual(d.get_base().value, "Dr. Pepper")
-        self.assertEqual([f.value for f in d.get_flavors()], ["cherry"])
-        self.assertEqual(d.get_num_flavors(), 1)
-# Module 2 
-    def test_order_total(self):
+    def test_invalid_flavor_raises(self):
+        drink = Drink("Pepsi", "Large")
+        with self.assertRaises(ValueError):
+            drink.add_flavor("banana")
+#Module 3 
+    def test_create_food_item(self):
+        food = Food("Hotdog")
+        self.assertEqual(food.get_type().name, "HOTDOG")
+        self.assertEqual(food.get_toppings(), [])
+        self.assertEqual(food.get_total(), 2.30)
+
+    def test_add_toppings_to_food(self):
+        food = Food("French Fries")
+        food.add_topping("chili")
+        food.add_topping("bacon bits")
+        self.assertEqual(len(food.get_toppings()), 2)
+        self.assertAlmostEqual(food.get_total(), 1.50 + 0.60 + 0.30, places=2)
+
+    def test_invalid_food_raises(self):
+        with self.assertRaises(ValueError):
+            Food("Pizza")
+
+    def test_invalid_topping_raises(self):
+        food = Food("Nacho Chips")
+        with self.assertRaises(ValueError):
+            food.add_topping("mayo")
+
+    def test_order_with_drinks_and_food(self):
         order = Order()
-        d1 = Drink("Coke", "Small")
+
+        d1 = Drink("Dr. Pepper", "Mega")
         d1.add_flavor("lemon")
-        d1.add_flavor("mint")
-        order.add_item(d1)
-        self.assertAlmostEqual(order.get_total(), 1.50 + 0.30)
+        d1.add_flavor("cherry")
 
-    def test_receipt_structure(self):
-        order = Order()
-        d = Drink("Pepsi", "Mega")
-        d.add_flavor("lime")
-        order.add_item(d)
+        f1 = Food("Onion Rings")
+        f1.add_topping("ketchup")
+
+        order.add_item(d1)
+        order.add_item(f1)
+
+        total = round(d1.cost + f1.cost, 2)
+        self.assertAlmostEqual(order.get_total(), total, places=2)
+
         receipt = order.get_receipt()
+        self.assertEqual(len(receipt["items"]), 2)
         self.assertIn("subtotal", receipt)
         self.assertIn("tax", receipt)
         self.assertIn("total", receipt)
-        self.assertEqual(receipt["drinks"][0]["base"], "Pepsi")
-        self.assertEqual(receipt["drinks"][0]["flavors"], ["lime"])
+
+        # Check types in receipt
+        self.assertEqual(receipt["items"][0]["type"], "Drink")
+        self.assertEqual(receipt["items"][1]["type"], "Food")
+
 
 if __name__ == '__main__':
     unittest.main()
