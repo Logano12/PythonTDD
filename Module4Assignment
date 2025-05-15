@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 from enum import Enum
 
 
-# Enums for sizes, bases, flavors, toppings, and food items
+# Enum for sizes
 class Size(Enum):
     SMALL = 'Small'
     MEDIUM = 'Medium'
@@ -20,7 +20,7 @@ class Size(Enum):
         }
         return prices[size]
 
-
+# Drink bases enum
 class Base(Enum):
     WATER = "Water"
     SPRITE = "Sprite"
@@ -29,7 +29,7 @@ class Base(Enum):
     PEPSI = "Pepsi"
     LEAF_WINE = "Leaf wine"
 
-
+# Flavor enums for drinks
 class Flavor(Enum):
     LEMON = "lemon"
     CHERRY = "cherry"
@@ -38,7 +38,7 @@ class Flavor(Enum):
     BLUEBERRY = "blueberry"
     LIME = "lime"
 
-
+# Toppings for food items
 class Topping(Enum):
     CHERRY = 0.00
     WHIPPED_CREAM = 0.00
@@ -50,7 +50,7 @@ class Topping(Enum):
     KETCHUP = 0.00
     MUSTARD = 0.00
 
-
+# Food items enum 
 class FoodItem(Enum):
     HOTDOG = 2.30
     CORNDOG = 2.00
@@ -60,6 +60,70 @@ class FoodItem(Enum):
     TATER_TOTS = 1.70
     NACHO_CHIPS = 1.90
 
+
+# IceStorm class
+# Module 4 
+class IceStorm:
+    FLAVORS = {
+        "Mint Chocolate Chip": 4.00,
+        "Chocolate": 3.00,
+        "Vanilla Bean": 3.00,
+        "Banana": 3.50,
+        "Butter Pecan": 3.50,
+        "S'more": 4.00,
+    }
+
+    TOPPINGS = {
+        "Cherry": 0.00,
+        "Whipped Cream": 0.00,
+        "Caramel Sauce": 0.50,
+        "Chocolate Sauce": 0.50,
+        "Storios": 1.00,
+        "Dig Dogs": 1.00,
+        "T&T's": 1.00,
+        "Cookie Dough": 1.00,
+        "Pecans": 0.50,
+    }
+
+    def __init__(self):
+        self.flavors = []
+        self.toppings = []
+
+    def get_flavors(self):
+        return self.flavors
+
+    def add_flavor(self, flavor):
+        if flavor not in IceStorm.FLAVORS:
+            raise ValueError(f"Flavor '{flavor}' is not available.")
+        self.flavors.append(flavor)
+
+    def get_base(self):
+        # Base is the cost of flavors
+        return sum(IceStorm.FLAVORS[flavor] for flavor in self.flavors)
+
+    def get_size(self):
+        # Not for Ice Storms
+        return None
+
+    def get_total(self):
+        base_total = self.get_base()
+        toppings_total = sum(IceStorm.TOPPINGS[top] for top in self.toppings)
+        return round(base_total + toppings_total, 2)
+
+    def get_num_flavors(self):
+        return len(self.flavors)
+
+    def add_topping(self, topping):
+        if topping not in IceStorm.TOPPINGS:
+            raise ValueError(f"Topping '{topping}' is not available.")
+        self.toppings.append(topping)
+
+    def __str__(self):
+        flavor_str = ', '.join(self.flavors) if self.flavors else "No flavors"
+        topping_str = ', '.join(self.toppings) if self.toppings else "No toppings"
+        total = f"${self.get_total():.2f}"
+        return f"Ice Storm with: {flavor_str} | Toppings: {topping_str} | Total: {total}"
+# IceStorm class
 
 # Drink class
 class Drink:
@@ -321,6 +385,44 @@ class TestCinosOrderSystem(unittest.TestCase):
         # Check types in receipt
         self.assertEqual(receipt["items"][0]["type"], "Drink")
         self.assertEqual(receipt["items"][1]["type"], "Food")
+        
+        # ice storm test module 4 
+    def setUp(self):
+        self.ice_storm = IceStorm()
+    
+    def test_add_valid_flavor(self):
+        self.ice_storm.add_flavor("Chocolate")
+        self.assertIn("Chocolate", self.ice_storm.get_flavors())
+        self.assertEqual(self.ice_storm.get_num_flavors(), 1)
+
+    def test_add_invalid_flavor(self):
+        with self.assertRaises(ValueError):
+            self.ice_storm.add_flavor("Strawberry")
+
+    def test_add_multiple_flavors(self):
+        self.ice_storm.add_flavor("Banana")
+        self.ice_storm.add_flavor("S'more")
+        self.assertEqual(self.ice_storm.get_base(), 3.5 + 4.0)
+        self.assertEqual(self.ice_storm.get_num_flavors(), 2)
+
+    def test_add_valid_toppings(self):
+        self.ice_storm.add_flavor("Vanilla Bean")
+        self.ice_storm.add_topping("Cherry")
+        self.ice_storm.add_topping("Cookie Dough")
+        self.assertEqual(self.ice_storm.get_total(), 3.00 + 0.00 + 1.00)
+
+    def test_add_invalid_topping(self):
+        with self.assertRaises(ValueError):
+            self.ice_storm.add_topping("Gummy Bears")
+
+    def test_get_size_returns_none(self):
+        self.assertIsNone(self.ice_storm.get_size())
+
+    def test_str_output(self):
+        self.ice_storm.add_flavor("Mint Chocolate Chip")
+        self.ice_storm.add_topping("Pecans")
+        expected = "Ice Storm with: Mint Chocolate Chip | Toppings: Pecans | Total: $4.50"
+        self.assertEqual(str(self.ice_storm), expected)
 
 
 if __name__ == '__main__':
